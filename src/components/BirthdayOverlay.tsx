@@ -28,21 +28,21 @@ export default function BirthdayOverlay({ isOpen, onClose }: BirthdayOverlayProp
             <Sparkles className="w-3.5 h-3.5" /> Special Day
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Selamat Ulang Tahun, Sayang! 🎂🎉
+            Selamat Ulang Tahun, Sayangggg!
           </h2>
           <p className="text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
-            Semoga di usiamu yang baru ini makin bahagia, makin lancar kuliahnya, dan makin sukses kariernya. Workspace manager ini kubuat khusus buat nemenin aktivitas harianmu biar makin produktif! ❤️
+            Semoga di usia kamu yang baru ini makin bahagia, makin rajinn, dan makin sukses yaaa. aku bikinin kamu ini biar makin produktif!
           </p>
         </div>
 
         {/* Agenda Card */}
         <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 text-xs space-y-2.5">
           <h3 className="font-semibold text-slate-800 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
-            🎁 Agenda Kejutan Hari Ini:
+            Agenda Hari Ini:
           </h3>
           <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed">
-            <li>Buka kado utama yang ada di bawah meja ✨</li>
-            <li>Siap-siap jam 19.00 untuk dinner ulang tahun bareng! 🍽️</li>
+            <li>Kuliah dan Buka Kado dari Aku</li>
+            <li>Makan Makannn</li>
           </ul>
         </div>
 

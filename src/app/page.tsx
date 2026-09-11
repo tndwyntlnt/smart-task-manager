@@ -523,7 +523,7 @@ export default function Home() {
                 }`}
               >
                 <Share2 className="w-3.5 h-3.5" />
-                Social Media
+                Kerja
               </button>
 
               {isBirthday && (
@@ -537,7 +537,7 @@ export default function Home() {
                   }`}
                 >
                   <Gift className="w-3.5 h-3.5 text-pink-500" />
-                  Birthday 🎂
+                  Birthday
                 </button>
               )}
             </div>
