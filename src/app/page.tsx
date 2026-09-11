@@ -25,7 +25,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  MessageSquareHeart,
   Sparkles,
 } from 'lucide-react';
 
@@ -67,12 +66,10 @@ export default function Home() {
   // State Modal Konfirmasi Hapus Modern
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
-  // State Fitur Support Notes & Management Modal-nya
+  // State Fitur Support Notes
   const [supportNotes, setSupportNotes] = useState<SupportNote[]>([]);
   const [selectedNote, setSelectedNote] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isManageNotesOpen, setIsManageNotesOpen] = useState(false);
-  const [newNoteInput, setNewNoteInput] = useState('');
 
   // Birthday Overlay & Special Tab
   const [isBirthday, setIsBirthday] = useState(false);
@@ -111,12 +108,17 @@ export default function Home() {
 
   // Fetch Data
   const fetchData = useCallback(async () => {
-    const { data: tasksData } = await supabase
+    const { data: tasksData, error: tasksError } = await supabase
       .from('tasks')
       .select('*')
       .order('created_at', { ascending: false });
 
-    const { data: notesData } = await supabase.from('support_notes').select('*');
+    const { data: notesData, error: notesError } = await supabase
+      .from('support_notes')
+      .select('*');
+
+    if (tasksError) console.error('Error fetching tasks:', tasksError);
+    if (notesError) console.error('Error fetching support_notes:', notesError);
 
     if (tasksData) setTasks(tasksData);
     if (notesData) setSupportNotes(notesData);
@@ -182,6 +184,7 @@ export default function Home() {
 
     if (targetStatus === 'done') {
       confetti({ particleCount: 60, spread: 45, origin: { y: 0.7 } });
+      
       if (supportNotes.length > 0) {
         const notes = [...supportNotes];
         const array = new Uint32Array(1);
@@ -189,30 +192,11 @@ export default function Home() {
         const randomIndex = array[0] % notes.length;
         setSelectedNote(notes[randomIndex].message);
         setIsModalOpen(true);
+      } else {
+        // Fallback jika notes kosong dari database
+        setSelectedNote("Kerja bagus! Terus pertahankan semangatmu! ✨");
+        setIsModalOpen(true);
       }
-    }
-  };
-
-  // Handlers Support Notes CRUD
-  const handleAddSupportNote = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newNoteInput.trim()) return;
-
-    const { data, error } = await supabase
-      .from('support_notes')
-      .insert([{ message: newNoteInput.trim() }])
-      .select();
-
-    if (!error && data) {
-      setSupportNotes((prev) => [data[0], ...prev]);
-      setNewNoteInput('');
-    }
-  };
-
-  const handleDeleteSupportNote = async (id: string) => {
-    const { error } = await supabase.from('support_notes').delete().eq('id', id);
-    if (!error) {
-      setSupportNotes((prev) => prev.filter((n) => n.id !== id));
     }
   };
 
@@ -486,18 +470,8 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Action Header: Tab Switcher & Tombol Atur Support Notes */}
+          {/* Action Header: Tab Switcher */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsManageNotesOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition shadow-sm"
-              title="Kelola Catatan Dukungan"
-            >
-              <MessageSquareHeart className="w-3.5 h-3.5 text-pink-500" />
-              <span className="hidden xs:inline">Support Notes</span> ({supportNotes.length})
-            </button>
-
             <div className="inline-flex bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/80 gap-1">
               <button
                 type="button"
@@ -893,85 +867,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- MODAL PENGELOLAAN SUPPORT NOTES --- */}
-      {isManageNotesOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
-            
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-pink-50 text-pink-600 rounded-xl">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Kelola Catatan Dukungan</h3>
-                  <p className="text-[11px] text-slate-500">Pesan acak yang muncul saat tugas selesai diselesaikan.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsManageNotesOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Form Tambah Catatan Baru */}
-            <form onSubmit={handleAddSupportNote} className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Tulis pesan penyemangat baru..."
-                  value={newNoteInput}
-                  onChange={(e) => setNewNoteInput(e.target.value)}
-                  className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition shadow-sm shrink-0"
-                >
-                  Tambah
-                </button>
-              </div>
-            </form>
-
-            {/* List Catatan Yang Ada */}
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {supportNotes.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 py-6">Belum ada catatan dukungan. Tambahkan sekarang!</p>
-              ) : (
-                supportNotes.map((note) => (
-                  <div key={note.id} className="flex items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs">
-                    <span className="text-slate-700 font-medium leading-relaxed">"{note.message}"</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSupportNote(note.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-                      title="Hapus catatan"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsManageNotesOpen(false)}
-                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
-              >
-                Tutup
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
       {/* --- MODAL KONFIRMASI HAPUS MODERN --- */}
       {taskToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -1062,7 +957,7 @@ export default function Home() {
     );
   }
 
-  // Render Kartu Task & Modern Edit Form (Tombol Edit/Hapus dibuat selalu muncul agar ramah mobile)
+  // Render Kartu Task & Modern Edit Form
   function renderCard(task: Task) {
     const isEditing = editingTaskId === task.id;
     const isBeingDragged = draggedTaskId === task.id;
@@ -1159,7 +1054,7 @@ export default function Home() {
               {getPriorityBadge(task.priority || 'medium')}
             </div>
             
-            {/* Tombol Edit & Hapus (Sekarang langsung terlihat tanpa perlu hover agar ramah pengguna mobile) */}
+            {/* Tombol Edit & Hapus (Langsung tampil di mobile, smooth di desktop) */}
             <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition">
               <button
                 type="button"
