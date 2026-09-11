@@ -68,8 +68,8 @@ export default function Home() {
 
   // State Fitur Support Notes
   const [supportNotes, setSupportNotes] = useState<SupportNote[]>([]);
-  const [selectedNote, setSelectedNote] = useState<string>('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [selectedNote, setSelectedNote] = useState<string>('');
+  // const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Birthday Overlay & Special Tab
   const [isBirthday, setIsBirthday] = useState(false);
@@ -78,6 +78,10 @@ export default function Home() {
   // Refs click outside
   const priorityRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
+
+  const [selectedNote, setSelectedNote] = useState<string>('');
+  const [selectedAuthor, setSelectedAuthor] = useState<string>(''); // State baru untuk nama author
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -178,23 +182,46 @@ export default function Home() {
       .eq('id', taskId);
 
     if (error) {
+      console.error('Error update task status:', error);
       void fetchData();
       return;
     }
 
     if (targetStatus === 'done') {
       confetti({ particleCount: 60, spread: 45, origin: { y: 0.7 } });
-      
-      if (supportNotes.length > 0) {
-        const notes = [...supportNotes];
-        const array = new Uint32Array(1);
-        crypto.getRandomValues(array);
-        const randomIndex = array[0] % notes.length;
-        setSelectedNote(notes[randomIndex].message);
+
+      // Fetch catatan dari Supabase
+      const { data: notesData, error: notesError } = await supabase
+        .from('support_notes')
+        .select('*');
+
+      if (!notesError && notesData && notesData.length > 0) {
+        // Pick acak 1 baris catatan
+        const randomIndex = Math.floor(Math.random() * notesData.length);
+        const randomObj = notesData[randomIndex];
+
+        // Ambil isi teks catatan
+        const noteContent =
+          randomObj.message ||
+          randomObj.note ||
+          randomObj.content ||
+          randomObj.text ||
+          'Semangat terus ya!';
+
+        // Ambil nama author secara fleksibel
+        const authorName =
+          randomObj.author ||
+          randomObj.author_name ||
+          randomObj.created_by ||
+          randomObj.sender ||
+          'Anonim';
+
+        setSelectedNote(String(noteContent));
+        setSelectedAuthor(String(authorName));
         setIsModalOpen(true);
       } else {
-        // Fallback jika notes kosong dari database
-        setSelectedNote("Kerja bagus! Terus pertahankan semangatmu! ✨");
+        setSelectedNote('Tetap semangat! Kamu sudah melakukan yang terbaik hari ini! ✨');
+        setSelectedAuthor('System');
         setIsModalOpen(true);
       }
     }
@@ -631,7 +658,7 @@ export default function Home() {
                   </button>
 
                   {isDatePickerOpen && (
-                    <div className="absolute top-full right-0 sm:left-0 mt-1 w-full max-w-[520px] bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-30 space-y-3.5 animate-in fade-in duration-150">
+                    <div className="absolute top-full right-0 sm:left-0 mt-1 w-full max-w-130 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-30 space-y-3.5 animate-in fade-in duration-150">
                       
                       <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                         <span className="text-xs font-bold text-slate-800">Batas Waktu Tugas</span>
@@ -909,6 +936,7 @@ export default function Home() {
       <SupportNoteModal
         isOpen={isModalOpen}
         message={selectedNote}
+        author={selectedAuthor} // Oper nama author ke modal
         onClose={() => setIsModalOpen(false)}
       />
 
@@ -932,7 +960,7 @@ export default function Home() {
         onDragOver={(e) => handleDragOver(e, status)}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, status)}
-        className={`bg-slate-200/50 p-4 rounded-2xl border transition-all min-h-[440px] flex flex-col ${
+        className={`bg-slate-200/50 p-4 rounded-2xl border transition-all min-h-110 flex flex-col ${
           isOver
             ? 'border-indigo-400 bg-indigo-50/50 ring-2 ring-indigo-200'
             : 'border-slate-200/80'
