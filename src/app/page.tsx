@@ -489,11 +489,11 @@ export default function Home() {
                 <LayoutGrid className="w-5 h-5" />
               </div>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                Workspace
+                Workspace Imelda
               </h1>
             </div>
             <p className="text-slate-500 text-xs font-normal">
-              Atur alur kerja perkuliahan & pembuatan konten secara fleksibel.
+              Atur jadwal biar ga keteterann
             </p>
           </div>
 

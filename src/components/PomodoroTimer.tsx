@@ -121,8 +121,8 @@ export default function PomodoroTimer() {
             </h2>
             <p className="text-[11px] text-slate-500">
               {mode === 'work'
-                ? 'Fokus selesaikan tugasmu'
-                : 'Istirahatkan pikiran sejenak'}
+                ? 'Fokus selesaiin tugasss'
+                : 'istirahat dulu bentarr'}
             </p>
           </div>
         </div>
