@@ -739,7 +739,7 @@ export default function Home() {
                                   inputMode="numeric"
                                   value={inputHour}
                                   onChange={handleHourInputChange}
-                                  placeholder="HH"
+                                  placeholder="23"
                                   className="w-12 h-9 text-center text-sm font-bold bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800 shadow-sm"
                                 />
                                 <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Jam</span>
@@ -753,7 +753,7 @@ export default function Home() {
                                   inputMode="numeric"
                                   value={inputMinute}
                                   onChange={handleMinuteInputChange}
-                                  placeholder="MM"
+                                  placeholder="59"
                                   className="w-12 h-9 text-center text-sm font-bold bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800 shadow-sm"
                                 />
                                 <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Menit</span>
