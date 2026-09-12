@@ -51,7 +51,7 @@ export default function Home() {
   const [pickerMonth, setPickerMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  // State Input Jam & Menit
+  // State Input Jam & Menit (String Murni agar bisa kosong "")
   const [inputHour, setInputHour] = useState('23');
   const [inputMinute, setInputMinute] = useState('59');
 
@@ -68,8 +68,6 @@ export default function Home() {
 
   // State Fitur Support Notes
   const [supportNotes, setSupportNotes] = useState<SupportNote[]>([]);
-  // const [selectedNote, setSelectedNote] = useState<string>('');
-  // const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Birthday Overlay & Special Tab
   const [isBirthday, setIsBirthday] = useState(false);
@@ -80,7 +78,7 @@ export default function Home() {
   const datePickerRef = useRef<HTMLDivElement>(null);
 
   const [selectedNote, setSelectedNote] = useState<string>('');
-  const [selectedAuthor, setSelectedAuthor] = useState<string>(''); // State baru untuk nama author
+  const [selectedAuthor, setSelectedAuthor] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -96,14 +94,12 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Sync selectedDate & time ketika newDueDate berubah
+  // Sync selectedDate HANYA jika newDueDate diset dari luar (tanpa memaksa format 00 saat ngetik)
   useEffect(() => {
     if (newDueDate) {
       const d = new Date(newDueDate);
-      if (!isNaN(d.getTime())) {
+      if (!isNaN(d.getTime()) && !selectedDate) {
         setSelectedDate(d);
-        setInputHour(String(d.getHours()).padStart(2, '0'));
-        setInputMinute(String(d.getMinutes()).padStart(2, '0'));
       }
     } else {
       setSelectedDate(null);
@@ -190,17 +186,14 @@ export default function Home() {
     if (targetStatus === 'done') {
       confetti({ particleCount: 60, spread: 45, origin: { y: 0.7 } });
 
-      // Fetch catatan dari Supabase
       const { data: notesData, error: notesError } = await supabase
         .from('support_notes')
         .select('*');
 
       if (!notesError && notesData && notesData.length > 0) {
-        // Pick acak 1 baris catatan
         const randomIndex = Math.floor(Math.random() * notesData.length);
         const randomObj = notesData[randomIndex];
 
-        // Ambil isi teks catatan
         const noteContent =
           randomObj.message ||
           randomObj.note ||
@@ -208,7 +201,6 @@ export default function Home() {
           randomObj.text ||
           'Semangat terus ya!';
 
-        // Ambil nama author secara fleksibel
         const authorName =
           randomObj.author ||
           randomObj.author_name ||
@@ -295,7 +287,7 @@ export default function Home() {
     }
   };
 
-  // Handler Hapus dengan Modal Modern
+  // Handler Hapus
   const confirmDeleteTask = async () => {
     if (!taskToDelete) return;
     const { error } = await supabase.from('tasks').delete().eq('id', taskToDelete.id);
@@ -311,11 +303,11 @@ export default function Home() {
       setNewDueDate('');
       return;
     }
-    const h = parseInt(hStr, 10) || 0;
-    const m = parseInt(mStr, 10) || 0;
+    const h = hStr === '' ? 0 : parseInt(hStr, 10);
+    const m = mStr === '' ? 0 : parseInt(mStr, 10);
 
     const updated = new Date(date);
-    updated.setHours(h, m, 0, 0);
+    updated.setHours(isNaN(h) ? 0 : h, isNaN(m) ? 0 : m, 0, 0);
 
     const year = updated.getFullYear();
     const month = String(updated.getMonth() + 1).padStart(2, '0');
@@ -326,36 +318,33 @@ export default function Home() {
     setNewDueDate(`${year}-${month}-${day}T${formattedH}:${formattedM}`);
   };
 
+  // PERBAIKAN: Handler Input Tanpa Auto Zero
   const handleHourInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.length > 2) val = val.slice(-2);
-    if (parseInt(val, 10) > 23) val = '23';
-    
-    setInputHour(val);
+    const rawVal = e.target.value.replace(/\D/g, ''); // Hanya terima angka
+    let val = rawVal.slice(-2); // Maksimal 2 digit
+
+    if (val !== '' && parseInt(val, 10) > 23) {
+      val = '23';
+    }
+
+    setInputHour(val); // Langsung set nilai string murni (bisa kosong "")
     const targetDate = selectedDate || new Date();
     if (!selectedDate) setSelectedDate(targetDate);
     updateDateTimeString(targetDate, val, inputMinute);
   };
 
   const handleMinuteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.length > 2) val = val.slice(-2);
-    if (parseInt(val, 10) > 59) val = '59';
+    const rawVal = e.target.value.replace(/\D/g, '');
+    let val = rawVal.slice(-2);
+
+    if (val !== '' && parseInt(val, 10) > 59) {
+      val = '59';
+    }
 
     setInputMinute(val);
     const targetDate = selectedDate || new Date();
     if (!selectedDate) setSelectedDate(targetDate);
     updateDateTimeString(targetDate, inputHour, val);
-  };
-
-  const handleTimeBlur = () => {
-    const formattedH = inputHour.padStart(2, '0');
-    const formattedM = inputMinute.padStart(2, '0');
-    setInputHour(formattedH);
-    setInputMinute(formattedM);
-    if (selectedDate) {
-      updateDateTimeString(selectedDate, formattedH, formattedM);
-    }
   };
 
   const handleSelectDay = (day: number) => {
@@ -373,8 +362,8 @@ export default function Home() {
   };
 
   const handleQuickTimePreset = (h: number, m: number) => {
-    const hStr = String(h).padStart(2, '0');
-    const mStr = String(m).padStart(2, '0');
+    const hStr = String(h);
+    const mStr = String(m);
     setInputHour(hStr);
     setInputMinute(mStr);
     const dateToUse = selectedDate || new Date();
@@ -431,7 +420,6 @@ export default function Home() {
   };
 
   const currentNumHour = parseInt(inputHour, 10) || 0;
-  const currentNumMinute = parseInt(inputMinute, 10) || 0;
   const prevHour = (currentNumHour - 1 + 24) % 24;
   const nextHour = (currentNumHour + 1) % 24;
 
@@ -497,7 +485,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Action Header: Tab Switcher */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/80 gap-1">
               <button
@@ -744,16 +731,15 @@ export default function Home() {
                               <Clock className="w-3.5 h-3.5 text-slate-400" /> Jam & Menit
                             </span>
 
+                            {/* PERBAIKAN: Input tanpa onBlur & tanpa auto zero */}
                             <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 flex items-center justify-center gap-2 focus-within:ring-2 focus-within:ring-slate-800/10 transition">
                               <div className="flex flex-col items-center">
                                 <input
                                   type="text"
                                   inputMode="numeric"
-                                  maxLength={2}
                                   value={inputHour}
                                   onChange={handleHourInputChange}
-                                  onBlur={handleTimeBlur}
-                                  placeholder="23"
+                                  placeholder="HH"
                                   className="w-12 h-9 text-center text-sm font-bold bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800 shadow-sm"
                                 />
                                 <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Jam</span>
@@ -765,11 +751,9 @@ export default function Home() {
                                 <input
                                   type="text"
                                   inputMode="numeric"
-                                  maxLength={2}
                                   value={inputMinute}
                                   onChange={handleMinuteInputChange}
-                                  onBlur={handleTimeBlur}
-                                  placeholder="59"
+                                  placeholder="MM"
                                   className="w-12 h-9 text-center text-sm font-bold bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800 shadow-sm"
                                 />
                                 <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Menit</span>
@@ -780,25 +764,25 @@ export default function Home() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const h = String(prevHour).padStart(2, '0');
+                                  const h = String(prevHour);
                                   setInputHour(h);
                                   updateDateTimeString(selectedDate || new Date(), h, inputMinute);
                                 }}
                                 className="hover:text-slate-800 transition"
                               >
-                                -1 Jam ({String(prevHour).padStart(2, '0')})
+                                -1 Jam ({prevHour})
                               </button>
                               <span>•</span>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const h = String(nextHour).padStart(2, '0');
+                                  const h = String(nextHour);
                                   setInputHour(h);
                                   updateDateTimeString(selectedDate || new Date(), h, inputMinute);
                                 }}
                                 className="hover:text-slate-800 transition"
                               >
-                                +1 Jam ({String(nextHour).padStart(2, '0')})
+                                +1 Jam ({nextHour})
                               </button>
                             </div>
                           </div>
@@ -894,7 +878,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- MODAL KONFIRMASI HAPUS MODERN --- */}
+      {/* MODAL KONFIRMASI HAPUS MODERN */}
       {taskToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-4 text-center animate-in zoom-in-95 duration-200">
@@ -936,7 +920,7 @@ export default function Home() {
       <SupportNoteModal
         isOpen={isModalOpen}
         message={selectedNote}
-        author={selectedAuthor} // Oper nama author ke modal
+        author={selectedAuthor}
         onClose={() => setIsModalOpen(false)}
       />
 
@@ -985,7 +969,7 @@ export default function Home() {
     );
   }
 
-  // Render Kartu Task & Modern Edit Form
+  // Render Kartu Task
   function renderCard(task: Task) {
     const isEditing = editingTaskId === task.id;
     const isBeingDragged = draggedTaskId === task.id;
@@ -1082,7 +1066,6 @@ export default function Home() {
               {getPriorityBadge(task.priority || 'medium')}
             </div>
             
-            {/* Tombol Edit & Hapus (Langsung tampil di mobile, smooth di desktop) */}
             <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition">
               <button
                 type="button"
