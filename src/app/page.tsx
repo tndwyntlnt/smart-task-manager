@@ -4,14 +4,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Task, SupportNote, TaskCategory, TaskPriority, TaskStatus } from '@/types/database';
 import SupportNoteModal from '@/components/SupportNoteModal';
-import BirthdayOverlay from '@/components/BirthdayOverlay';
 import PomodoroTimer from '@/components/PomodoroTimer';
+import BirthdaySurpriseView from '@/components/BirthdaySurpriseView';
 import confetti from 'canvas-confetti';
 import {
   Plus,
   BookOpen,
   Share2,
-  Gift,
   Pencil,
   Trash2,
   Check,
@@ -25,12 +24,15 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Sparkles,
 } from 'lucide-react';
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeTab, setActiveTab] = useState<TaskCategory>('kuliah');
+
+  // Logic Ulang Tahun & Dynamic Landing Page
+  const [isBirthdayToday, setIsBirthdayToday] = useState(false);
+  const [bypassBirthdayView, setBypassBirthdayView] = useState(false);
 
   // Drag & Drop State
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function Home() {
   const [pickerMonth, setPickerMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  // State Input Jam & Menit (String Murni agar bisa kosong "")
+  // State Input Jam & Menit
   const [inputHour, setInputHour] = useState('23');
   const [inputMinute, setInputMinute] = useState('59');
 
@@ -68,10 +70,6 @@ export default function Home() {
 
   // State Fitur Support Notes
   const [supportNotes, setSupportNotes] = useState<SupportNote[]>([]);
-
-  // Birthday Overlay & Special Tab
-  const [isBirthday, setIsBirthday] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false);
 
   // Refs click outside
   const priorityRef = useRef<HTMLDivElement>(null);
@@ -94,7 +92,7 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Sync selectedDate HANYA jika newDueDate diset dari luar (tanpa memaksa format 00 saat ngetik)
+  // Sync selectedDate saat newDueDate diset
   useEffect(() => {
     if (newDueDate) {
       const d = new Date(newDueDate);
@@ -106,7 +104,7 @@ export default function Home() {
     }
   }, [newDueDate]);
 
-  // Fetch Data
+  // Fetch Data & Pengecekan Tanggal Otomatis
   const fetchData = useCallback(async () => {
     const { data: tasksData, error: tasksError } = await supabase
       .from('tasks')
@@ -127,14 +125,16 @@ export default function Home() {
   useEffect(() => {
     void fetchData();
 
+    // Pengecekan Tanggal Ulang Tahun (misal: 22 September)
     const today = new Date();
-    const isTodayBirthday = today.getMonth() === 8 && today.getDate() === 22;
+    const TARGET_MONTH = 8; // September (0-indexed)
+    const TARGET_DATE = 13;
 
-    if (isTodayBirthday) {
-      setIsBirthday(true);
-      setShowOverlay(true);
-      setActiveTab('special');
-    }
+    const isTodayBirthday = 
+      today.getMonth() === TARGET_MONTH && 
+      today.getDate() === TARGET_DATE;
+
+    setIsBirthdayToday(isTodayBirthday);
   }, [fetchData]);
 
   // Tambah Tugas Baru
@@ -318,16 +318,15 @@ export default function Home() {
     setNewDueDate(`${year}-${month}-${day}T${formattedH}:${formattedM}`);
   };
 
-  // PERBAIKAN: Handler Input Tanpa Auto Zero
   const handleHourInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value.replace(/\D/g, ''); // Hanya terima angka
-    let val = rawVal.slice(-2); // Maksimal 2 digit
+    const rawVal = e.target.value.replace(/\D/g, '');
+    let val = rawVal.slice(-2);
 
     if (val !== '' && parseInt(val, 10) > 23) {
       val = '23';
     }
 
-    setInputHour(val); // Langsung set nilai string murni (bisa kosong "")
+    setInputHour(val);
     const targetDate = selectedDate || new Date();
     if (!selectedDate) setSelectedDate(targetDate);
     updateDateTimeString(targetDate, val, inputMinute);
@@ -465,6 +464,17 @@ export default function Home() {
     high: 'Tinggi (High)',
   };
 
+  // Render Tampilan Kejutan jika HARI INI adalah Ulang Tahun
+  if (isBirthdayToday && !bypassBirthdayView) {
+    return (
+      <BirthdaySurpriseView
+        {...({
+          onContinueToWorkspace: () => setBypassBirthdayView(true),
+        } as any)}
+      />
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-800 p-4 sm:p-6 md:p-10 font-sans tracking-tight">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -512,21 +522,6 @@ export default function Home() {
                 <Share2 className="w-3.5 h-3.5" />
                 Kerja
               </button>
-
-              {isBirthday && (
-                <button
-                  type="button"
-                  onClick={() => { setActiveTab('special'); cancelEdit(); }}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'special'
-                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <Gift className="w-3.5 h-3.5 text-pink-500" />
-                  Birthday
-                </button>
-              )}
             </div>
           </div>
         </header>
@@ -731,7 +726,6 @@ export default function Home() {
                               <Clock className="w-3.5 h-3.5 text-slate-400" /> Jam & Menit
                             </span>
 
-                            {/* PERBAIKAN: Input tanpa onBlur & tanpa auto zero */}
                             <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 flex items-center justify-center gap-2 focus-within:ring-2 focus-within:ring-slate-800/10 transition">
                               <div className="flex flex-col items-center">
                                 <input
@@ -922,11 +916,6 @@ export default function Home() {
         message={selectedNote}
         author={selectedAuthor}
         onClose={() => setIsModalOpen(false)}
-      />
-
-      <BirthdayOverlay
-        isOpen={showOverlay}
-        onClose={() => setShowOverlay(false)}
       />
     </main>
   );
