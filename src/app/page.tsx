@@ -128,7 +128,7 @@ export default function Home() {
     // Pengecekan Tanggal Ulang Tahun (misal: 22 September)
     const today = new Date();
     const TARGET_MONTH = 8; // September (0-indexed)
-    const TARGET_DATE = 13;
+    const TARGET_DATE = 22;
 
     const isTodayBirthday = 
       today.getMonth() === TARGET_MONTH && 
